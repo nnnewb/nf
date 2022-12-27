@@ -1,3 +1,9 @@
+# product version control
+VERSION=0.1.0
+VCS_COMMIT=$(shell git --no-pager log --pretty=format:"%H" -1)
+BUILD_TIME=$(shell date --rfc-3339=seconds)
+VCS_DIRTY=$(shell if [ "$$(git status --porcelain | wc -l)" -gt 0 ]; then echo -dirty; fi;)
+
 # third party libraries
 LIBPCAP_PATH=${HOME}/cgo/linux/amd64
 LIBPCAP_INCLUDE=${LIBPCAP_PATH}/include
@@ -14,11 +20,26 @@ CGO_ENABLED=1
 GO_GOOS=linux
 GO_GOARCH=amd64
 
-# linker options
-LDFLAGS=-extldflags=-static -linkmode=external -s -w
+# enable static link
+CGO_STATIC_LINK=1
+STATIC_LD_FLAGS=
 
-# version control
-VCS_COMMIT=$(git log --pretty=format:"%H" -1)
+ifdef CGO_STATIC_LINK
+STATIC_LD_FLAGS=\
+	-extldflags=-static \
+	-linkmode=external
+endif
+
+# linker options
+LDFLAGS=\
+	${STATIC_LD_FLAGS} \
+	-s \
+	-w \
+	-X "github.com/nnnewb/nf/internal/constants.BUILD_COMMIT=${VCS_COMMIT}${VCS_DIRTY}" \
+	-X "github.com/nnnewb/nf/internal/constants.BUILD_TIME=${BUILD_TIME}" \
+	-X "github.com/nnnewb/nf/internal/constants.BUILD_STATIC=${CGO_STATIC_LINK}" \
+	-X "github.com/nnnewb/nf/internal/constants.VERSION=${VERSION}"
+
 
 # compiler environment variables
 GO_ENV= \
@@ -30,7 +51,7 @@ GO_ENV= \
 	GOOS=${GO_GOOS} \
 	GOARCH=${GO_GOARCH}
 
-all: nf deps
+all: nf
 
 .PHONY: nf
 nf:
