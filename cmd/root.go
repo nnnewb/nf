@@ -135,7 +135,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringP("nic", "i", "any", "network interface card")
+	rootCmd.PersistentFlags().StringP("interface", "i", "any", "network interface card")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nf.yaml)")
 
 	// Cobra also supports local flags, which will only run
