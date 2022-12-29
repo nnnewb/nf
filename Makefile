@@ -1,8 +1,10 @@
 # product version control
-VERSION=0.1.0
 VCS_COMMIT=$(shell git --no-pager log --pretty=format:"%H" -1)
-BUILD_TIME=$(shell date --rfc-3339=seconds)
 VCS_DIRTY=$(shell if [ "$$(git status --porcelain | wc -l)" -gt 0 ]; then echo -dirty; fi;)
+VCS_TAG=$(shell git describe --tags --abbrev=0)
+BUILD_TIME=$(shell date --rfc-3339=seconds)
+
+VERSION=$(VCS_TAG)
 
 # third party libraries
 LIBPCAP_PATH=${HOME}/cgo/linux/amd64
