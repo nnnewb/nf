@@ -17,10 +17,12 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/nnnewb/nf/internal/pinger"
@@ -38,8 +40,10 @@ var pingCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		proto, err := cmd.PersistentFlags().GetString("protocol")
 		cobra.CheckErr(err)
+
 		interval, err := cmd.PersistentFlags().GetDuration("interval")
 		cobra.CheckErr(err)
+
 		switch proto {
 		case "tcp", "udp", "icmp":
 		default:
@@ -48,36 +52,37 @@ var pingCmd = &cobra.Command{
 
 		var seq int
 		for {
-			if proto == "tcp" || proto == "udp" {
+			switch proto {
+			case "tcp":
 				if len(args) != 2 {
 					_ = cmd.Help()
 					return
 				}
 
-				conn, err := net.DialTimeout(proto, fmt.Sprintf("%s:%s", args[0], args[1]), time.Second)
+				dpt, err := strconv.ParseInt(args[1], 10, 32)
+				cobra.CheckErr(err)
+
+				err = pinger.HandShakeTCP(net.ParseIP(args[0]), int(dpt), interval)
 				if err != nil {
-					log.Printf("error: %s\n", err)
+					log.Printf("error: %s", err)
 					continue
 				}
 
-				log.Printf("%s: %s:%s\n", proto, args[0], args[1])
-				conn.Close()
-				time.Sleep(time.Second * interval)
-				continue
-			}
-
-			if proto == "icmp" {
-				peer, rm, err := pinger.SendICMPEcho(os.Getpid()&0xffff, seq, net.UDPAddr{IP: net.ParseIP(args[0])}, interval*time.Second)
+				log.Printf("%s:%s port is open\n", args[0], args[1])
+			case "udp":
+				cobra.CheckErr(errors.New("not implemented yet"))
+			case "icmp":
+				peer, rm, err := pinger.SendICMPEcho(os.Getpid()&0xffff, seq, net.UDPAddr{IP: net.ParseIP(args[0])}, interval)
 				if err != nil {
 					log.Printf("error: %s\n", err)
 					continue
 				}
 
 				log.Printf("%s: %s\n", rm.Type, peer)
-
-				time.Sleep(time.Second * interval)
 				seq++
 			}
+
+			time.Sleep(interval)
 		}
 	},
 }
@@ -90,7 +95,7 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	pingCmd.PersistentFlags().StringP("protocol", "p", "", "protocol, tcp/udp/icmp")
-	pingCmd.PersistentFlags().Duration("interval", 1, "wait time between two packet sent")
+	pingCmd.PersistentFlags().Duration("interval", time.Second, "wait time between two packet sent")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

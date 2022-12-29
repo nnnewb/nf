@@ -18,8 +18,8 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 
-	"github.com/google/gopacket/pcap"
 	"github.com/spf13/cobra"
 )
 
@@ -29,18 +29,20 @@ var lsCmd = &cobra.Command{
 	Short: "list network interface card.",
 	Long:  `list network interface card.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ifs, err := pcap.FindAllDevs()
-		if err != nil {
-			panic(err)
-		}
+
+		ifs, err := net.Interfaces()
+		cobra.CheckErr(err)
+
 		for _, i := range ifs {
 			println("---")
 			fmt.Printf("Name: %s:\n", i.Name)
-			fmt.Printf("Description: %s\n", i.Description)
 			print("Address: ")
-			for idx, addr := range i.Addresses {
-				fmt.Printf("%s", addr.IP)
-				if idx < len(i.Addresses)-1 {
+			addrs, err := i.Addrs()
+			cobra.CheckErr(err)
+
+			for idx, addr := range addrs {
+				fmt.Printf("%s", addr.String())
+				if idx < len(addrs)-1 {
 					print(", ")
 				}
 			}
