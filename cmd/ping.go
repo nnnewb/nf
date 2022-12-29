@@ -17,7 +17,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -70,7 +69,26 @@ var pingCmd = &cobra.Command{
 
 				log.Printf("%s:%s port is open\n", args[0], args[1])
 			case "udp":
-				cobra.CheckErr(errors.New("not implemented yet"))
+				if len(args) != 2 {
+					_ = cmd.Help()
+					return
+				}
+
+				dst := net.ParseIP(args[0])
+				if dst == nil {
+					cobra.CheckErr(fmt.Errorf("%s is not valid IP address", args[1]))
+				}
+
+				dpt, err := strconv.ParseInt(args[1], 10, 32)
+				cobra.CheckErr(err)
+
+				err = pinger.SendUDPPacket(dst, int(dpt))
+				if err != nil {
+					log.Printf("error: %s\n", err)
+					continue
+				}
+
+				log.Printf("%s:%s packet sent\n", args[0], args[1])
 			case "icmp":
 				peer, rm, err := pinger.SendICMPEcho(os.Getpid()&0xffff, seq, net.UDPAddr{IP: net.ParseIP(args[0])}, interval)
 				if err != nil {
