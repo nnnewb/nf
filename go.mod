@@ -3,7 +3,7 @@ module github.com/nnnewb/nf
 go 1.19
 
 require (
-	github.com/google/gopacket v1.1.19
+	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
 	github.com/pkg/errors v0.9.1
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/spf13/cobra v1.6.1

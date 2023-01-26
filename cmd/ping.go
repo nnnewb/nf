@@ -58,13 +58,24 @@ var pingCmd = &cobra.Command{
 					return
 				}
 
+				useSynScan, err := cmd.PersistentFlags().GetBool("syn")
+				cobra.CheckErr(err)
+
 				dpt, err := strconv.ParseInt(args[1], 10, 32)
 				cobra.CheckErr(err)
 
-				err = pinger.HandShakeTCP(net.ParseIP(args[0]), int(dpt), interval)
-				if err != nil {
-					log.Printf("error: %s", err)
-					continue
+				if useSynScan {
+					err = pinger.SynScan(net.ParseIP(args[0]), int(dpt), interval)
+					if err != nil {
+						log.Printf("error: %+v", err)
+						continue
+					}
+				} else {
+					err = pinger.HandShakeTCP(net.ParseIP(args[0]), int(dpt), interval)
+					if err != nil {
+						log.Printf("error: %+v", err)
+						continue
+					}
 				}
 
 				log.Printf("%s:%s port is open\n", args[0], args[1])
@@ -113,6 +124,7 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	pingCmd.PersistentFlags().StringP("protocol", "p", "", "protocol, tcp/udp/icmp")
+	pingCmd.PersistentFlags().Bool("syn", false, "try syn scan")
 	pingCmd.PersistentFlags().Duration("interval", time.Second, "wait time between two packet sent")
 
 	// Cobra supports local flags which will only run when this command
