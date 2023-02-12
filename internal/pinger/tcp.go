@@ -25,6 +25,12 @@ func HandShakeTCP(dst net.IP, port int, timeout time.Duration) error {
 	return nil
 }
 
+var (
+	ErrPortClosed = errors.New("port closed")
+	ErrTimeout    = errors.New("timeout")
+)
+
+// SynScan SYN 半开放扫描
 func SynScan(dst net.IP, port int, timeout time.Duration) error {
 	var (
 		src       net.IP
@@ -112,6 +118,10 @@ func SynScan(dst net.IP, port int, timeout time.Duration) error {
 
 				data, _, err := handle.ZeroCopyReadPacketData()
 				if err != nil {
+					if errors.Is(err, pcap.NextErrorTimeoutExpired) {
+						result <- ErrTimeout
+						return
+					}
 					result <- errors.WithStack(err)
 					return
 				}
@@ -139,10 +149,19 @@ func SynScan(dst net.IP, port int, timeout time.Duration) error {
 				}
 
 				if ipv4Packet.SrcIP.Equal(dst) && ipv4Packet.DstIP.Equal(src) {
-					if tcpPacket.DstPort == 54321 && tcpPacket.SrcPort == layers.TCPPort(port) && tcpPacket.ACK && tcpPacket.SYN {
-						// log.Printf("%+v", tcpPacket)
-						result <- nil
-						return
+					if tcpPacket.DstPort == 54321 && tcpPacket.SrcPort == layers.TCPPort(port) {
+						// open
+						if tcpPacket.ACK && tcpPacket.SYN {
+							// log.Printf("%+v", tcpPacket)
+							result <- nil
+							return
+						}
+
+						// close
+						if tcpPacket.ACK && tcp.RST {
+							result <- ErrPortClosed
+							return
+						}
 					}
 				}
 			}

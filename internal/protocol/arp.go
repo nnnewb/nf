@@ -16,6 +16,55 @@ import (
 	"github.com/pkg/errors"
 )
 
+func readLine(reader *bufio.Reader) ([]byte, error) {
+	line, isPrefix, err := reader.ReadLine()
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return []byte{}, nil
+		}
+		return nil, err
+	}
+
+	for isPrefix {
+		var b []byte
+		b, isPrefix, err = reader.ReadLine()
+		if err != nil {
+			return nil, err
+		}
+		line = append(line, b...)
+	}
+
+	return line, nil
+}
+
+// EthernetAddressResolver ARP 实现
+type EthernetAddressResolver struct {
+	cache map[string]net.HardwareAddr
+}
+
+func NewEthernetAddressResolver() EthernetAddressResolver {
+	cacheMap := make(map[string]net.HardwareAddr)
+	file, err := os.Open("/proc/net/arp")
+	if err == nil {
+		defer file.Close()
+		reader := bufio.NewReader(file)
+		_, _ = readLine(reader)
+		for line, err := readLine(reader); err == nil && len(line) != 0; line, err = readLine(reader) {
+			fields := strings.Fields(string(line))
+			hardwareAddr, err := net.ParseMAC(string(fields[3]))
+			if err != nil {
+				continue
+			}
+
+			cacheMap[string(fields[0])] = hardwareAddr
+		}
+	}
+
+	return EthernetAddressResolver{
+		cache: cacheMap,
+	}
+}
+
 // sendARPRequest 发送 ARP 请求
 func sendARPRequest(handle *pcap.Handle, iface *net.Interface, src, dst net.IP) error {
 	// 以太网协议需要对端的 MAC 地址，如果需要经过路由，则需要路由的 MAC 地址。
