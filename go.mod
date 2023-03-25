@@ -4,12 +4,14 @@ go 1.19
 
 require (
 	github.com/google/gopacket v1.1.20-0.20220810144506-32ee38206866
+	github.com/magefile/mage v1.14.0
 	github.com/pkg/errors v0.9.1
-	github.com/songgao/packets v0.0.0-20160404182456-549a10cd4091
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
 	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
+	golang.org/x/sys v0.0.0-20220908164124-27713097b956
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -25,7 +27,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
-	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

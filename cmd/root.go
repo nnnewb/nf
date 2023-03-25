@@ -1,23 +1,8 @@
-/*
-Copyright © 2022 weak_ptr <weak_ptr@outlook.com>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
 package cmd
 
 import (
 	"fmt"
+	"github.com/nnnewb/nf/internal/elevation"
 	"log"
 	"net"
 	"os"
@@ -45,28 +30,35 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cmd.ParseFlags(os.Args)
-		if err != nil {
-			panic(err)
+		if !elevation.IsElevated() {
+			err := elevation.RunElevated()
+			if err != nil {
+				log.Fatalf("run elevated failed, error %+v", err)
+			}
+			os.Exit(0)
 		}
 
-		log.SetFlags(log.Lmicroseconds | log.LstdFlags)
+		err := cmd.ParseFlags(os.Args)
+		if err != nil {
+			log.Fatalf("parse flags failed, error %+v", err)
+		}
+
 		i, err := cmd.PersistentFlags().GetString("interface")
 		if err != nil {
-			panic(err)
+			log.Fatalf("get interface parameter failed, error %+v", err)
 		}
 
 		log.Printf("start capture packets on NIC %s\n", i)
 		handle, err := pcap.OpenLive(i, 0, false, time.Second)
 		if err != nil {
-			panic(err)
+			log.Fatalf("pcap.OpenLive failed, error %+v", err)
 		}
 		defer handle.Close()
 
 		log.Printf("used BPF: %s\n", strings.Join(args, " "))
 		err = handle.SetBPFFilter(strings.Join(args, " "))
 		if err != nil {
-			panic(err)
+			log.Fatalf("handle.SetBPFFilter failed, error %+v", err)
 		}
 
 		pktSrc := gopacket.NewPacketSource(handle, handle.LinkType())
@@ -128,21 +120,6 @@ func Execute() {
 	}
 }
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringP("interface", "i", "any", "network interface card")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nf.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
@@ -163,6 +140,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }

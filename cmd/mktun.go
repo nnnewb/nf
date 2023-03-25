@@ -1,6 +1,6 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
+//go:build linux
+// +build linux
+
 package cmd
 
 import (
